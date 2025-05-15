@@ -53,4 +53,13 @@ Frontend related javascript
 		}
 	});
 
+	jQuery(document).on('click', '#toggles span:not(.active)', function(){
+		jQuery('#toggles span').toggleClass('active');
+		jQuery('#results').toggleClass('list_view');
+		jQuery('#results').toggleClass('image_view');
+		doResize();
+	});
+
 })( jQuery );
+
+

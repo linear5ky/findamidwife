@@ -66,9 +66,13 @@ class Findamidwife_Run{
 	public function enqueue_frontend_scripts_and_styles() {
 		wp_enqueue_style( 'findamidwi-frontend-styles', FINDAMIDWI_PLUGIN_URL . 'core/includes/assets/css/frontend-styles.css', array(), FINDAMIDWI_VERSION, 'all' );
 		wp_enqueue_script( 'findamidwi-frontend-scripts', FINDAMIDWI_PLUGIN_URL . 'core/includes/assets/js/frontend-scripts.js', array( 'jquery' ), FINDAMIDWI_VERSION, true );
-		wp_localize_script( 'findamidwi-frontend-scripts', 'findamidwi', array(
-			'demo_var'   		=> __( 'This is some demo text coming from the backend through a variable within javascript.', 'findamidwife' ),
-		));
+
+		add_shortcode('showMap', array($this, 'showSearchMap' ) );
 	}
 
+
+
+	public function showSearchMap() {
+		FindMidwife::ShowMap();
+	}
 }

@@ -18,29 +18,17 @@ Author URI: http://www.tauri-tec.com
 	Margin, padding, and border resets
 	except for form elements
 */
-body,
 div,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
 blockquote,
 pre,
 dl,
 dt,
 dd,
 ol,
-ul,
-li,
 fieldset,
 form,
 label,
 legend,
-th,
-td,
 article,
 aside,
 figure,
@@ -452,53 +440,7 @@ body {
 .align-center {
   text-align: center;
 }
-h1 {
-  font-family: GTHaptik;
-  font-weight: bold;
-  font-size: 1em;
-  text-transform: uppercase;
-  margin: 10px 15px 20px 15px;
-  line-height: 1.2em;
-  letter-spacing: 0.1em;
-}
-h1.handwritten {
-  margin-top: -10px;
-  font-weight: 100;
-}
-h2 {
-  font-family: GTHaptik;
-  font-weight: normal;
-  font-size: 1em;
-  text-transform: uppercase;
-  margin: 10px 15px 20px 15px;
-  line-height: 1.2em;
-  letter-spacing: 0.1em;
-}
-h3 {
-  font-family: GTHaptik;
-  font-weight: bold;
-  font-size: 0.875em;
-  text-transform: uppercase;
-  margin: 10px 15px 20px 15px;
-  line-height: 1.2em;
-  letter-spacing: 0.1em;
-}
-h4 {
-  font-family: GTHaptik;
-  font-size: 0.875em;
-  text-transform: uppercase;
-  margin: 10px 15px 20px 15px;
-  line-height: 1.2em;
-  letter-spacing: 0.1em;
-  font-weight: normal;
-}
-p {
-  font-family: GTHaptik;
-  font-weight: normal;
-  font-size: 0.875em;
-  margin: 0px 15px 20px 15px;
-  letter-spacing: 40;
-}
+
 .small {
   font-family: GTHaptik;
   font-weight: normal;
@@ -509,34 +451,6 @@ p {
   font-weight: normal;
   font-size: 0.625em;
 }
-b {
-  font-family: GTHaptik;
-  font-weight: bold;
-}
-@media screen and (min-width: 44.625em) {
-  .handwritten {
-    font-size: 2.8125em;
-  }
-  h1 {
-    font-size: 1.25em;
-    margin: 10px 20px 20px 20px;
-  }
-  h2 {
-    font-size: 1.25em;
-    margin: 10px 20px 20px 20px;
-  }
-  h3 {
-    font-size: 0.875em;
-    margin: 10px 20px 20px 20px;
-  }
-  h4 {
-    font-size: 0.875em;
-    margin: 10px 20px 20px 20px;
-  }
-  p {
-    font-size: 1em;
-    margin: 0px 20px 20px 20px;
-  }
   .small {
     font-size: 0.875em;
   }
@@ -549,8 +463,7 @@ b {
   }
 }
 @media screen and (min-width: 59.625em) {
-  p {
-    font-size: 1.25em;
+
   }
   .cell .caption p {
     font-size: 1em;
