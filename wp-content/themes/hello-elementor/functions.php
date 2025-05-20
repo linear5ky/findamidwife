@@ -515,7 +515,8 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
 	function google_geoencode($address){
         // $google_api_key = 'AIzaSyBdUua-jce9HcnHaygqJ__dmzIRoQCKTmo';
-        $google_api_key = 'AIzaSyB9qSi9lZhVvBXCGjWwWwMwDVaOlhfAELI';
+   
+        $google_api_key = 'AIzaSyDt0fVw3YeRz0Ldt1dlzk2ssx9M3-GDmNM';
         $base_url = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
         $address= str_replace(' ', '+', $address);
 
