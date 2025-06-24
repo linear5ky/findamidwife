@@ -524,8 +524,8 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
         $url = $base_url.$address.'&key='.$google_api_key;
         if($results = @file_get_contents($url)){
-            echo 'imuktest2_'.$results.'<br />';
-            print_r($results);
+           // echo 'imuktest2_'.$results.'<br />';
+            //print_r($results);
             //convert the json file to PHP array
             $response = json_decode($results, true);
             //If the user entered address matched a Google Maps API address, it will return 'OK' in the status field.
@@ -540,9 +540,9 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
             // } else { printr( $response );
             }
         } else {
-            print_r($url);
+          //  print_r($url);
             // If the file_get_contents fails, then we will return an empty array
-            echo 'imuktest3_'.'Error retrieving data from Google Maps API';
+          //  echo 'imuktest3_'.'Error retrieving data from Google Maps API';
         }
         return NULL;
     }
