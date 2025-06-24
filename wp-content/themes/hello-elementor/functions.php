@@ -264,7 +264,9 @@ if ( ! function_exists( 'hello_elementor_body_open' ) ) {
 	}
 }
 
- $google_api_key = 'AIzaSyDt0fVw3YeRz0Ldt1dlzk2ssx9M3-GDmNM';
+
+
+$google_api_key = 'AIzaSyCVBqLiHOqacztP0Iq-jTVtDWrvOrR1UuI';
 wp_enqueue_script('google-maps', 'https://maps.googleapis.com/maps/api/js?key='.$google_api_key);
 wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
@@ -514,14 +516,16 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
 
 	function google_geoencode($address){
-        // $google_api_key = 'AIzaSyBdUua-jce9HcnHaygqJ__dmzIRoQCKTmo';
-   
+
         $google_api_key = 'AIzaSyDt0fVw3YeRz0Ldt1dlzk2ssx9M3-GDmNM';
+        
         $base_url = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
         $address= str_replace(' ', '+', $address);
 
         $url = $base_url.$address.'&key='.$google_api_key;
         if($results = @file_get_contents($url)){
+            echo 'imuktest2_'.$results.'<br />';
+            print_r($results);
             //convert the json file to PHP array
             $response = json_decode($results, true);
             //If the user entered address matched a Google Maps API address, it will return 'OK' in the status field.
@@ -535,6 +539,10 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
             
             // } else { printr( $response );
             }
+        } else {
+            print_r($url);
+            // If the file_get_contents fails, then we will return an empty array
+            echo 'imuktest3_'.'Error retrieving data from Google Maps API';
         }
         return NULL;
     }
