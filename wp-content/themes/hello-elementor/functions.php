@@ -314,11 +314,32 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
     function midwife_search($search_point, $midwife_name, $practice_name, $specialism, $region, $radius){
         global $wpdb;
         // echo 'imuktest0_'.$search_point.'<br />';
-        if(is_null($search_point["latitude"]) || is_null($search_point["longitude"])){
-            $search_point = google_geoencode(str_replace(' ', '+', $search_point["postcode"]));
+        // The search form passes latitude/longitude as null and a postcode.
+        // google_geoencode() replaces that with lat/lng. If the lookup fails,
+        // return no results. Falling through used to coerce null to 0,0
+        // (Gulf of Guinea), so every UK midwife was about 3,500 miles away
+        // and the radius filter excluded them all.
+        if (!is_array($search_point)) {
+            return array();
         }
-        // sometimes its blank from this point onwards... WHY???
-        // echo 'imuktest1_'.$search_point.'<br />';
+
+        $has_coordinates = isset($search_point["latitude"], $search_point["longitude"])
+            && is_numeric($search_point["latitude"])
+            && is_numeric($search_point["longitude"]);
+
+        if (!$has_coordinates) {
+            $search_point = google_geoencode(isset($search_point["postcode"]) ? $search_point["postcode"] : '');
+        } else {
+            // Caller already resolved the postcode. Distance math expects lat/lng keys.
+            $search_point = array(
+                "lat" => (float) $search_point["latitude"],
+                "lng" => (float) $search_point["longitude"],
+            );
+        }
+
+        if (!is_array($search_point) || !is_numeric($search_point["lat"]) || !is_numeric($search_point["lng"])) {
+            return array();
+        }
 
         $midwife_name = strtolower($midwife_name);
         $practice_name = strtolower($practice_name);
@@ -399,8 +420,9 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
                // print_r($midwife_location);
 
-                // Double check the latitude and longitude values to make sure that they are set, if not then simply ignore them
-                if($midwife_location["latitude"] == "" || $midwife_location["longitude"] == ""){
+                // Stored coordinates must be numeric. An empty or junk value used to
+                // be passed into the distance function and coerced to 0.
+                if(!is_numeric($midwife_location["latitude"]) || !is_numeric($midwife_location["longitude"])){
                     continue;
                 }
 
@@ -409,6 +431,11 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
                     $search_point["lat"], $search_point["lng"],
                     $midwife_location["latitude"], $midwife_location["longitude"]
                 );
+
+                // Null means the coordinates could not be used. Skip rather than show a bogus mileage.
+                if($distance === null){
+                    continue;
+                }
 
                 // echo ('imuktestingstring_dr_'.$distance);
 
@@ -515,36 +542,71 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
     }
 
 
-	function google_geoencode($address){
+    /**
+     * Turn a postcode or address into coordinates.
+     *
+     * Uses the WordPress HTTP API rather than file_get_contents(). The old call
+     * depended on allow_url_fopen and PHP's SSL certificate bundle, which broke
+     * on the PHP 8.3 upgrade, and the @ suppressor hid the failure.
+     * This is the server-side Geocoding key, not the browser Maps key.
+     * A referrer-restricted browser key is rejected by this API.
+     *
+     * @param string $address Postcode or address. Spaces or "+" are both accepted.
+     * @return array{lat: float, lng: float}|null
+     */
+    function google_geoencode($address){
+        $address = trim(str_replace('+', ' ', (string) $address));
+        if ($address === '') {
+            return null;
+        }
 
         $google_api_key = 'AIzaSyDt0fVw3YeRz0Ldt1dlzk2ssx9M3-GDmNM';
-        
-        $base_url = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
-        $address= str_replace(' ', '+', $address);
+        // region=gb biases ambiguous UK postcodes towards Britain.
+        $url = add_query_arg(
+            array(
+                'address' => $address,
+                'region' => 'gb',
+                'key' => $google_api_key,
+            ),
+            'https://maps.googleapis.com/maps/api/geocode/json'
+        );
 
-        $url = $base_url.$address.'&key='.$google_api_key;
-        if($results = @file_get_contents($url)){
-           // echo 'imuktest2_'.$results.'<br />';
-            //print_r($results);
-            //convert the json file to PHP array
-            $response = json_decode($results, true);
-            //If the user entered address matched a Google Maps API address, it will return 'OK' in the status field.
-            if($response["status"] == "OK"){
-                //If okay, find the lat and lng values and assign them to local array
-                $latLng = array(
-                    "lat"=>$response["results"][0]["geometry"]["location"]["lat"],
-                    "lng" =>$response["results"][0]["geometry"]["location"]["lng"]
-                );
-                return $latLng;
-            
-            // } else { printr( $response );
-            }
-        } else {
-          //  print_r($url);
-            // If the file_get_contents fails, then we will return an empty array
-          //  echo 'imuktest3_'.'Error retrieving data from Google Maps API';
+        $request = wp_remote_get($url, array(
+            'timeout' => 10,
+            'redirection' => 2,
+        ));
+
+        // Any failure returns null. Callers must not treat that as 0,0.
+        if (is_wp_error($request)) {
+            error_log('Find a midwife geocode failed: ' . $request->get_error_message());
+            return null;
         }
-        return NULL;
+
+        $code = (int) wp_remote_retrieve_response_code($request);
+        $body = wp_remote_retrieve_body($request);
+        $response = json_decode($body, true);
+
+        if ($code !== 200 || !is_array($response)) {
+            error_log('Find a midwife geocode failed: HTTP ' . $code);
+            return null;
+        }
+
+        if (($response['status'] ?? '') !== 'OK') {
+            $status = $response['status'] ?? 'unknown';
+            $detail = isset($response['error_message']) ? $status . ': ' . $response['error_message'] : $status;
+            error_log('Find a midwife geocode failed: ' . $detail);
+            return null;
+        }
+
+        $location = $response['results'][0]['geometry']['location'] ?? null;
+        if (!is_array($location) || !is_numeric($location['lat'] ?? null) || !is_numeric($location['lng'] ?? null)) {
+            return null;
+        }
+
+        return array(
+            'lat' => (float) $location['lat'],
+            'lng' => (float) $location['lng'],
+        );
     }
 
     function calculate_distance($lat1, $lon1, $lat2, $lon2, $unit) {
@@ -564,7 +626,26 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
         }
     }
 
+    /**
+     * Distance in miles between two points.
+     * Returns null for missing or impossible coordinates so PHP does not coerce them to 0.
+     * Earth radius is metres; the result is converted to miles before it is returned.
+     */
     function vincentyGreatCircleDistance($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000){
+        if (!is_numeric($latitudeFrom) || !is_numeric($longitudeFrom) || !is_numeric($latitudeTo) || !is_numeric($longitudeTo)) {
+            return null;
+        }
+
+        $latitudeFrom = (float) $latitudeFrom;
+        $longitudeFrom = (float) $longitudeFrom;
+        $latitudeTo = (float) $latitudeTo;
+        $longitudeTo = (float) $longitudeTo;
+
+        // Reject values outside a real lat/lng. deg2rad() would still run and produce a huge mileage.
+        if (abs($latitudeFrom) > 90 || abs($latitudeTo) > 90 || abs($longitudeFrom) > 180 || abs($longitudeTo) > 180) {
+            return null;
+        }
+
         // convert from degrees to radians
         $latFrom = deg2rad($latitudeFrom);
         $lonFrom = deg2rad($longitudeFrom);
@@ -579,7 +660,13 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
         $ratio = 0.621371192;
 
-        return round( ((($angle * $earthRadius)/1000) * $ratio), 2);
+        $miles = round( ((($angle * $earthRadius)/1000) * $ratio), 2);
+        // NaN or infinity must not be compared against the radius filter.
+        if (!is_finite($miles)) {
+            return null;
+        }
+
+        return $miles;
     }
 
     function initialize_theme_settings(){
