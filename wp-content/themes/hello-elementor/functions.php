@@ -266,8 +266,11 @@ if ( ! function_exists( 'hello_elementor_body_open' ) ) {
 
 
 
-$google_api_key = 'AIzaSyCVBqLiHOqacztP0Iq-jTVtDWrvOrR1UuI';
-wp_enqueue_script('google-maps', 'https://maps.googleapis.com/maps/api/js?key='.$google_api_key);
+// Browser Maps JavaScript key from wp-config.php. Referrer-restricted. Not the geocoding key.
+$google_api_key = defined( 'GOOGLE_MAPS_API_KEY' ) ? GOOGLE_MAPS_API_KEY : '';
+if ( $google_api_key !== '' ) {
+	wp_enqueue_script( 'google-maps', 'https://maps.googleapis.com/maps/api/js?key=' . rawurlencode( $google_api_key ) );
+}
 wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
 
 
@@ -548,7 +551,7 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
      * Uses the WordPress HTTP API rather than file_get_contents(). The old call
      * depended on allow_url_fopen and PHP's SSL certificate bundle, which broke
      * on the PHP 8.3 upgrade, and the @ suppressor hid the failure.
-     * This is the server-side Geocoding key, not the browser Maps key.
+     * The key is GOOGLE_GEOCODING_API_KEY from wp-config.php, the server-side Geocoding key.
      * A referrer-restricted browser key is rejected by this API.
      *
      * @param string $address Postcode or address. Spaces or "+" are both accepted.
@@ -560,7 +563,12 @@ wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
             return null;
         }
 
-        $google_api_key = 'AIzaSyDt0fVw3YeRz0Ldt1dlzk2ssx9M3-GDmNM';
+        $google_api_key = defined( 'GOOGLE_GEOCODING_API_KEY' ) ? GOOGLE_GEOCODING_API_KEY : '';
+        if ( $google_api_key === '' ) {
+            error_log( 'Find a midwife geocode failed: GOOGLE_GEOCODING_API_KEY is not set' );
+            return null;
+        }
+
         // region=gb biases ambiguous UK postcodes towards Britain.
         $url = add_query_arg(
             array(
