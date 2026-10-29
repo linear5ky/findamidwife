@@ -266,12 +266,9 @@ if ( ! function_exists( 'hello_elementor_body_open' ) ) {
 
 
 
-// Browser Maps JavaScript key from wp-config.php. Referrer-restricted. Not the geocoding key.
-$google_api_key = defined( 'GOOGLE_MAPS_API_KEY' ) ? GOOGLE_MAPS_API_KEY : '';
-if ( $google_api_key !== '' ) {
-	wp_enqueue_script( 'google-maps', 'https://maps.googleapis.com/maps/api/js?key=' . rawurlencode( $google_api_key ) );
-}
-wp_enqueue_script('google-jsapi','https://www.google.com/jsapi');
+add_action( 'wp_enqueue_scripts', function () {
+	wp_enqueue_script( 'google-jsapi', 'https://www.google.com/jsapi', array(), null );
+}, 1 );
 
 
 

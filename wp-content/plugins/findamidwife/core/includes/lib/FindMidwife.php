@@ -47,16 +47,19 @@ class FindMidwife  {
             }
 
             $midwives = array();
+            $geocode_error = false;
+            $search_point = null;
 
             if($search_location["postcode"] != ''){
-                $midwives = midwife_search($search_location, $midwife_name, $practice_name, $specialism, $region, $radius);
+                $search_point = google_geoencode($search_location["postcode"]);
 
-                if(is_null($search_location["latitude"]) || is_null($search_location["longitude"])){
-                    $search_point = google_geoencode(str_replace(' ', '+', $search_point["postcode"]));
+                if(!is_array($search_point)){
+                    $geocode_error = true;
                 }
                 else{
-                    $search_point["lat"] = $search_location["latitude"];
-                    $search_point["lng"] = $search_location["longitude"];
+                    $search_location["latitude"] = $search_point["lat"];
+                    $search_location["longitude"] = $search_point["lng"];
+                    $midwives = midwife_search($search_location, $midwife_name, $practice_name, $specialism, $region, $radius);
                 }
             }
             else{
@@ -68,7 +71,7 @@ class FindMidwife  {
             
             <div id="map_hole" class="col col-sm-4 col-md-6 col-lg-8 <?php if (!(isset($_POST["postcode"]))) echo 'hidden-sm'; ?>">
                 <div id="close_map">
-                    You are near<br /><div class="you_are_near"><?php echo($_POST['postcode']) ?></div>
+                    You are near<br /><div class="you_are_near"><?php echo esc_html($_POST['postcode'] ?? ''); ?></div>
                 </div>
                 <div id="map_holder" class="minimized">
                     <div id="map">
@@ -167,6 +170,8 @@ class FindMidwife  {
                             echo('</div>');
                         }
                     echo ('</div>');
+                } else if (!empty($geocode_error)) {
+                    echo ('<div class="col col-sm-4 col-md-9 col-lg-12"><h1 class="no_side_margin">We could not find that location. Check it and try again.</h1></div>');
                 } else {
                     echo ('<div class="col col-sm-4 col-md-9 col-lg-12"><h1 class="no_side_margin">No midwives found.</h1></div>');
                 }
@@ -185,6 +190,14 @@ class FindMidwife  {
     </div>
 
     <?php
+        // Printed here, not only in the page head. A filtered search is an
+        // uncached POST, and loadMap runs in this same block. If the Maps
+        // script is missing, the map stays grey and google.maps is undefined.
+        $google_maps_key = defined( 'GOOGLE_MAPS_API_KEY' ) ? GOOGLE_MAPS_API_KEY : '';
+        if ( $google_maps_key !== '' ) {
+            echo '<script src="' . esc_url( 'https://maps.googleapis.com/maps/api/js?key=' . $google_maps_key ) . '"></script>' . "\n";
+        }
+
         if(!isset($_POST['postcode'])){
             ?>
     <script type="text/javascript">
@@ -236,11 +249,14 @@ class FindMidwife  {
             
             <?php
                 foreach($midwives as $midwife){
+                    if (!is_numeric($midwife['lat']) || !is_numeric($midwife['lng'])) {
+                        continue;
+                    }
                 
                     $image = get_bloginfo('template_url')."/images/marker_midwife.svg";
                   
                     ?>
-                    var Position = new google.maps.LatLng(<?php echo $midwife['lat'];?>, <?php echo $midwife['lng'];?>);
+                    var Position = new google.maps.LatLng(<?php echo json_encode((float) $midwife['lat']);?>, <?php echo json_encode((float) $midwife['lng']);?>);
                     var marker = new google.maps.Marker({
                         position: Position,
                         map: map,
@@ -274,11 +290,11 @@ class FindMidwife  {
         
         <?php
         
-            if(isset($search_point)){
+            if(is_array($search_point) && is_numeric($search_point['lat']) && is_numeric($search_point['lng'])){
                 
                 ?>
-                theLocation['lat'] = <?php echo $search_point['lat'];?>;
-                theLocation['lng'] = <?php echo $search_point['lng'];?>;
+                theLocation['lat'] = <?php echo json_encode((float) $search_point['lat']);?>;
+                theLocation['lng'] = <?php echo json_encode((float) $search_point['lng']);?>;
                 loadMap(theLocation['lat'], theLocation['lng'], true);
                 <?php
             }
